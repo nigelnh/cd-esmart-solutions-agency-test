@@ -1,0 +1,17 @@
+title: Esmart AI Image Generator
+emoji: 🎨
+colorFrom: indigo
+colorTo: purple
+sdk: static
+pinned: false
+app_port: 7860
+app_file: app.py
+python_version: "3.9"
+hf_oauth: false
+# GPU configuration
+hardware:
+  accelerator: A10G
+  gpu_count: 1
+models:
+  - kandinsky-community/kandinsky-2-2-prior
+  - kandinsky-community/kandinsky-2-2-decoder

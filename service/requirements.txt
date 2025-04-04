@@ -5,9 +5,15 @@ diffusers>=0.23.1
 transformers>=4.38.0
 accelerate>=0.25.0
 safetensors>=0.4.0
-torch==2.0.0
+torch>=2.0.0
 numpy>=2.0.0
 Pillow>=10.2.0
 requests==2.31.0
 python-dotenv==1.0.0
-httpx==0.24.1 
+httpx==0.24.1
+boto3==1.29.6
+botocore==1.32.6
+pydantic>=2.4.2
+jinja2>=3.1.2
+aiofiles>=23.2.1
+gradio>=3.50.2 

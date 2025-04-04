@@ -203,7 +203,11 @@ export default {
         this.isLoading = true;
         this.error = null;
 
-        const response = await axios.get(`/api/projects/${projectId}`);
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
+        const response = await axios.get(`${apiURL}/projects/${projectId}`);
 
         if (response.data.success) {
           const project = response.data.data;
@@ -244,7 +248,13 @@ export default {
         this.isLoading = true;
         this.error = null;
 
-        const response = await axios.get(`/api/content/contents/${contentId}`);
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
+        const response = await axios.get(
+          `${apiURL}/content/contents/${contentId}`
+        );
 
         if (response.data.success) {
           const content = response.data.data;
@@ -253,7 +263,7 @@ export default {
           if (content.projectId) {
             try {
               const projectResponse = await axios.get(
-                `/api/projects/${content.projectId}`
+                `${apiURL}/projects/${content.projectId}`
               );
               if (projectResponse.data.success) {
                 const project = projectResponse.data.data;
@@ -503,7 +513,10 @@ export default {
         this.isLoading = true;
         this.error = null;
 
-        const response = await axios.get(`/api/projects/${projectId}`);
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
+        const response = await axios.get(`${apiURL}/projects/${projectId}`);
 
         if (response.data.success) {
           const project = response.data.data;

@@ -200,39 +200,93 @@ export default {
         // Now create content associated with this project
         if (projectCreated && projectId) {
           try {
-            const contentResponse = await axios.post(
-              `${this.apiEndpoint}/content/contents`,
-              {
-                projectId: projectId,
-                topic: this.formData.topic,
-                keywords: this.formData.keywords,
-                tone: this.formData.tone,
-                contentType: this.formData.type,
+            // Thêm logic thử lại và xử lý lỗi tốt hơn
+            let retryCount = 0;
+            const maxRetries = 2;
+            let contentCreated = false;
+            let contentError = null;
+
+            while (retryCount <= maxRetries && !contentCreated) {
+              try {
+                console.log(
+                  `Attempting to create content (attempt ${retryCount + 1}/${
+                    maxRetries + 1
+                  })...`
+                );
+
+                const contentResponse = await axios.post(
+                  `${this.apiEndpoint}/content/contents`,
+                  {
+                    projectId: projectId,
+                    topic: this.formData.topic,
+                    keywords: this.formData.keywords,
+                    tone: this.formData.tone,
+                    contentType: this.formData.type,
+                  },
+                  {
+                    // Tăng timeout cho API call
+                    timeout: 30000, // 30 seconds
+                  }
+                );
+
+                if (contentResponse.data.success) {
+                  contentCreated = true;
+
+                  // Update the content data with the generated content
+                  const updatedData = {
+                    ...this.formData,
+                    projectId: projectId,
+                    contentId: contentResponse.data.data.id,
+                    content:
+                      contentResponse.data.data.generatedContent ||
+                      "Không thể tạo nội dung",
+                  };
+
+                  // Emit update event with new data
+                  this.$emit("update:data", updatedData);
+
+                  // Go to next step
+                  this.$emit("next");
+
+                  // Hiển thị thông báo đang phân tích SEO
+                  this.$emit("seo-analyzing", true);
+
+                  break; // Thoát khỏi vòng lặp nếu thành công
+                } else {
+                  contentError = new Error(
+                    contentResponse.data.error || "Lỗi không xác định từ server"
+                  );
+                  retryCount++;
+
+                  if (retryCount <= maxRetries) {
+                    console.log(
+                      `Content creation failed, retrying (${retryCount}/${maxRetries})...`
+                    );
+                    await new Promise((resolve) => setTimeout(resolve, 2000)); // Đợi 2 giây trước khi thử lại
+                  }
+                }
+              } catch (error) {
+                contentError = error;
+                console.error(
+                  `Content creation attempt ${retryCount + 1} failed:`,
+                  error
+                );
+                retryCount++;
+
+                if (retryCount <= maxRetries) {
+                  console.log(
+                    `Retrying content creation (${retryCount}/${maxRetries})...`
+                  );
+                  await new Promise((resolve) => setTimeout(resolve, 2000)); // Đợi 2 giây trước khi thử lại
+                }
               }
-            );
+            }
 
-            if (contentResponse.data.success) {
-              // Update the content data with the generated content
-              const updatedData = {
-                ...this.formData,
-                projectId: projectId,
-                contentId: contentResponse.data.data.id,
-                content:
-                  contentResponse.data.data.generatedContent ||
-                  "Không thể tạo nội dung",
-              };
-
-              // Emit update event with new data
-              this.$emit("update:data", updatedData);
-
-              // Go to next step
-              this.$emit("next");
-
-              // Hiển thị thông báo đang phân tích SEO
-              this.$emit("seo-analyzing", true);
-            } else {
-              throw new Error(
-                contentResponse.data.error || "Unknown error occurred"
+            // Nếu sau tất cả các lần thử lại vẫn không tạo được nội dung
+            if (!contentCreated) {
+              throw (
+                contentError ||
+                new Error("Không thể tạo nội dung sau nhiều lần thử")
               );
             }
           } catch (contentError) {

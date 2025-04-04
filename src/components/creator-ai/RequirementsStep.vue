@@ -214,12 +214,27 @@ export default {
                   })...`
                 );
 
+                // Chuẩn hóa dữ liệu đầu vào để tránh lỗi từ server
+                const sanitizedKeywords = this.sanitizeInput(
+                  this.formData.keywords
+                );
+                const sanitizedTopic = this.sanitizeInput(this.formData.topic);
+
+                console.log(
+                  "Original keywords length:",
+                  this.formData.keywords.length
+                );
+                console.log(
+                  "Sanitized keywords length:",
+                  sanitizedKeywords.length
+                );
+
                 const contentResponse = await axios.post(
                   `${this.apiEndpoint}/content/contents`,
                   {
                     projectId: projectId,
-                    topic: this.formData.topic,
-                    keywords: this.formData.keywords,
+                    topic: sanitizedTopic,
+                    keywords: sanitizedKeywords,
                     tone: this.formData.tone,
                     contentType: this.formData.type,
                   },
@@ -321,8 +336,17 @@ export default {
               contentError.response &&
               contentError.response.status === 500
             ) {
-              errorMessage +=
-                "Lỗi máy chủ. Vui lòng thử lại với từ khóa ngắn hơn.";
+              // Hiển thị chi tiết lỗi từ server nếu có
+              const serverErrorDetails =
+                contentError.response.data?.error ||
+                contentError.response.data?.message ||
+                "Lỗi máy chủ";
+              console.error(
+                "Server error details:",
+                contentError.response.data
+              );
+              errorMessage += `Lỗi máy chủ (500): ${serverErrorDetails}. 
+                              Vui lòng thử lại với từ khóa ngắn hơn hoặc báo cáo cho đội kỹ thuật.`;
             } else {
               errorMessage +=
                 contentError.message + ". Đang sử dụng nội dung mẫu.";
@@ -416,6 +440,30 @@ Don't wait to enhance your understanding of ${topic}. Start your journey today!
 
 [Get Started] [Learn More] [Contact Us]`;
       }
+    },
+
+    sanitizeInput(input) {
+      if (!input) return "";
+
+      // Giới hạn độ dài keywords tối đa là 200 ký tự để tránh quá tải server
+      let sanitized = input;
+      if (sanitized.length > 200) {
+        // Cắt tại dấu phẩy gần nhất trước 200 ký tự
+        const commaIndex = sanitized.lastIndexOf(",", 200);
+        if (commaIndex > 0) {
+          sanitized = sanitized.substring(0, commaIndex);
+        } else {
+          sanitized = sanitized.substring(0, 200);
+        }
+      }
+
+      // Loại bỏ các ký tự đặc biệt có thể gây lỗi
+      sanitized = sanitized.replace(
+        /[^\p{L}\p{N}\p{P}\p{Z}\p{Cf}\p{Cc}\p{M}]/gu,
+        ""
+      );
+
+      return sanitized;
     },
   },
 };

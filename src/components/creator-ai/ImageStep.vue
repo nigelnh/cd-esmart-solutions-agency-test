@@ -218,7 +218,9 @@ export default {
       generationMethod: "topic",
       error: null,
       apiStatus: null,
-      apiUrl: process.env.VUE_APP_API_URL || "http://localhost:3001/api",
+      apiUrl:
+        process.env.VUE_APP_API_URL ||
+        "https://esmart-api-lnni.onrender.com/api",
       imageQuality: "medium",
       toasts: [],
     };

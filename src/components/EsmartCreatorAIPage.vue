@@ -446,7 +446,8 @@ export default {
 
         // If not, make sure it has the right prefix
         const FASTAPI_URL =
-          process.env.VUE_APP_FASTAPI_URL || "http://localhost:8000";
+          process.env.VUE_APP_FASTAPI_URL ||
+          "https://esmart-ai-service.onrender.com";
         return `${FASTAPI_URL}${url.startsWith("/") ? "" : "/"}${url}`;
       }
 

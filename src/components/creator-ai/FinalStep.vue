@@ -218,7 +218,10 @@ export default {
   },
   computed: {
     apiEndpoint() {
-      return process.env.VUE_APP_API_URL || "http://localhost:3001/api";
+      return (
+        process.env.VUE_APP_API_URL ||
+        "https://esmart-api-lnni.onrender.com/api"
+      );
     },
     hasProjectId() {
       return this.projectId && this.projectId.length > 0;

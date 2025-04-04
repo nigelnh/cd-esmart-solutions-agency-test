@@ -127,7 +127,10 @@ export default {
   computed: {
     apiEndpoint() {
       // Use environment variable if available, otherwise default to localhost
-      return process.env.VUE_APP_API_URL || "http://localhost:3001/api";
+      return (
+        process.env.VUE_APP_API_URL ||
+        "https://esmart-api-lnni.onrender.com/api"
+      );
     },
   },
   methods: {

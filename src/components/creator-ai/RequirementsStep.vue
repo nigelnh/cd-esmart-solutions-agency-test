@@ -225,7 +225,7 @@ export default {
                   },
                   {
                     // Tăng timeout cho API call
-                    timeout: 60000, // Tăng lên 60 giây
+                    timeout: 600000, // Tăng lên 10 phút (10 * 60 * 1000 = 600000ms)
                   }
                 );
 

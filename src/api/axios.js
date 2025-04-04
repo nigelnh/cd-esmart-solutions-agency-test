@@ -4,7 +4,7 @@ import { API_BASE_URL } from "./config";
 // Tạo instance axios với URL gốc
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // Tăng từ 30 lên 60 giây để xử lý các request lâu
+  timeout: 600000, // Tăng lên 10 phút (10 * 60 * 1000 = 600000ms)
   headers: {
     "Content-Type": "application/json",
   },
@@ -28,7 +28,7 @@ axiosInstance.interceptors.response.use(
     // Xử lý lỗi timeout
     if (error.code === "ECONNABORTED") {
       console.error(
-        "Request timeout. The server is taking too long to respond."
+        "Request timeout. The server is taking too long to respond (longer than 10 minutes)."
       );
     }
 

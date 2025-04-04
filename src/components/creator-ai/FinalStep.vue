@@ -352,7 +352,7 @@ export default {
         }
 
         // Ưu tiên sử dụng endpoint content-image để lấy ảnh từ database
-        const contentImageUrl = `/api/image/content-image/${this.contentId}`;
+        const contentImageUrl = `${this.apiEndpoint}/image/content-image/${this.contentId}`;
         console.log(`Trying content-image endpoint: ${contentImageUrl}`);
 
         try {
@@ -386,7 +386,7 @@ export default {
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const response = await axios.get(
-          `/api/content/contents/${this.contentId}`,
+          `${this.apiEndpoint}/content/contents/${this.contentId}`,
           {
             signal: controller.signal,
           }
@@ -424,7 +424,7 @@ export default {
               );
 
               // Create absolute URL to image uploads endpoint
-              const directUrl = `${window.location.origin}/api/image/uploads/${filename}`;
+              const directUrl = `${this.apiEndpoint}/image/uploads/${filename}`;
               console.log("Created direct URL to image:", directUrl);
 
               this.imageUrl = directUrl;
@@ -711,7 +711,7 @@ export default {
         // Bước 1: Tạo prompt từ nội dung
         console.log("Step 1: Generating prompt from content");
         const promptResponse = await axios.post(
-          `/api/content/contents/generate-prompt`,
+          `${this.apiEndpoint}/content/contents/generate-prompt`,
           {
             contentId: this.contentId,
             style: "Realistic",
@@ -743,7 +743,7 @@ export default {
 
         // Bước 2: Tạo hình ảnh từ prompt
         const imageResponse = await axios.post(
-          `/api/image/generate`,
+          `${this.apiEndpoint}/image/generate`,
           {
             prompt: generatedPrompt,
             style: "Realistic",
@@ -775,11 +775,11 @@ export default {
         }
 
         // Trường hợp API trả về filename
-        const imageUrl = `/api/content/contents/${this.contentId}/images/${imageResponse.data.filename}`;
+        const imageUrl = `${this.apiEndpoint}/content/contents/${this.contentId}/images/${imageResponse.data.filename}`;
 
         // Bước 3: Cập nhật URL hình ảnh vào nội dung
         const updateResponse = await axios.put(
-          `/api/content/contents/${this.contentId}`,
+          `${this.apiEndpoint}/content/contents/${this.contentId}`,
           {
             imageUrl,
             generatedContent: this.content, // Thêm trường generatedContent để tránh lỗi
@@ -826,7 +826,7 @@ export default {
                 this.showToast("Đang thử tải lại nội dung...", "info");
                 try {
                   const contentResponse = await axios.get(
-                    `/api/content/contents/${this.contentId}`
+                    `${this.apiEndpoint}/content/contents/${this.contentId}`
                   );
                   if (
                     contentResponse.data.success &&
@@ -879,10 +879,13 @@ export default {
         this.showToast("Đang lưu hình ảnh vào máy chủ...", "info");
 
         // 1. Gửi dữ liệu base64 đến API để lưu trên server
-        const saveResponse = await axios.post("/api/image/save-base64", {
-          imageData: base64Data,
-          contentId: this.contentId,
-        });
+        const saveResponse = await axios.post(
+          `${this.apiEndpoint}/image/save-base64`,
+          {
+            imageData: base64Data,
+            contentId: this.contentId,
+          }
+        );
 
         if (!saveResponse.data.success) {
           throw new Error(saveResponse.data.error || "Lỗi khi lưu hình ảnh");
@@ -894,7 +897,7 @@ export default {
 
         // 3. Cập nhật URL hình ảnh vào content
         const updateResponse = await axios.patch(
-          `/api/content/contents/${this.contentId}/partial`,
+          `${this.apiEndpoint}/content/contents/${this.contentId}/partial`,
           { imageUrl }
         );
 
@@ -942,7 +945,7 @@ export default {
 
         // Lấy thông tin nội dung hiện tại
         const contentResponse = await axios.get(
-          `/api/content/contents/${this.contentId}`
+          `${this.apiEndpoint}/content/contents/${this.contentId}`
         );
         if (!contentResponse.data.success) {
           throw new Error("Không thể lấy thông tin nội dung");
@@ -958,7 +961,7 @@ export default {
 
         // Cập nhật URL
         const updateResponse = await axios.put(
-          `/api/content/contents/${this.contentId}`,
+          `${this.apiEndpoint}/content/contents/${this.contentId}`,
           {
             imageUrl: this.localImage,
             generatedContent: content.generatedContent || this.content,
@@ -1018,7 +1021,7 @@ export default {
         const filename = imageFilenameMatch[0];
         console.log(`Detected image filename pattern: ${filename}`);
         // Use correct endpoint /api/image/uploads/:fileName
-        const result = `${window.location.origin}/api/image/uploads/${filename}`;
+        const result = `${this.apiEndpoint}/image/uploads/${filename}`;
         console.log(`Created direct URL for image file: ${result}`);
         return result;
       }
@@ -1029,21 +1032,21 @@ export default {
         const filename = url.split("/").pop();
         console.log(`Extracted filename from uploads path: ${filename}`);
         // Use correct endpoint /api/image/uploads/:fileName
-        const result = `${window.location.origin}/api/image/uploads/${filename}`;
+        const result = `${this.apiEndpoint}/image/uploads/${filename}`;
         console.log(`Created uploads URL: ${result}`);
         return result;
       }
 
       // If starts with /api, add domain
       if (url.startsWith("/api")) {
-        const result = `${window.location.origin}${url}`;
+        const result = `${this.apiEndpoint}${url}`;
         console.log(`Created API URL: ${result}`);
         return result;
       }
 
       // If starts with server/ or /server/
       if (url.startsWith("server/") || url.startsWith("/server/")) {
-        const result = `${window.location.origin}/api/${url.replace(
+        const result = `${this.apiEndpoint}/api/${url.replace(
           /^(\/)?server\//,
           ""
         )}`;
@@ -1053,13 +1056,13 @@ export default {
 
       // If doesn't start with / but is still a relative path, add /
       if (!url.startsWith("/")) {
-        const result = `${window.location.origin}/${url}`;
+        const result = `${this.apiEndpoint}/${url}`;
         console.log(`Created relative path URL: ${result}`);
         return result;
       }
 
       // Default case, assume relative to root
-      const result = `${window.location.origin}${url}`;
+      const result = `${this.apiEndpoint}${url}`;
       console.log(`Created root-relative URL: ${result}`);
       return result;
     },
@@ -1091,10 +1094,8 @@ export default {
 
       // Đường dẫn trực tiếp đến API endpoint (ưu tiên cao nhất)
       if (filename) {
-        possibleUrls.push(`/api/image/uploads/${filename}`);
-        possibleUrls.push(
-          `${window.location.origin}/api/image/uploads/${filename}`
-        );
+        possibleUrls.push(`${this.apiEndpoint}/image/uploads/${filename}`);
+        possibleUrls.push(`${this.apiEndpoint}/image/uploads/${filename}`);
       }
 
       if (originalUrl.includes("uploads/")) {
@@ -1106,7 +1107,7 @@ export default {
       // Thử URL gốc với tên miền
       if (!originalUrl.startsWith("http") && !originalUrl.startsWith("data:")) {
         possibleUrls.push(
-          `${window.location.origin}${
+          `${this.apiEndpoint}${
             originalUrl.startsWith("/") ? "" : "/"
           }${originalUrl}`
         );
@@ -1171,7 +1172,7 @@ export default {
       }
 
       axios
-        .get(`/api/content/contents/${this.contentId}`)
+        .get(`${this.apiEndpoint}/content/contents/${this.contentId}`)
         .then((response) => {
           if (response.data && response.data.success && response.data.data) {
             const content = response.data.data;
@@ -1193,7 +1194,7 @@ export default {
                 );
 
                 // Create direct URL to image uploads endpoint
-                const directUrl = `${window.location.origin}/api/image/uploads/${filename}`;
+                const directUrl = `${this.apiEndpoint}/image/uploads/${filename}`;
                 console.log(
                   "Created direct URL to image from database:",
                   directUrl
@@ -1329,7 +1330,7 @@ export default {
           console.log(`Found image filename pattern: ${filename}`);
 
           // Create direct URL to image uploads endpoint
-          const directUrl = `${window.location.origin}/api/image/uploads/${filename}`;
+          const directUrl = `${this.apiEndpoint}/image/uploads/${filename}`;
           console.log("Created direct URL to image:", directUrl);
 
           // Update URL immediately
@@ -1386,7 +1387,7 @@ export default {
                 console.log("Failed to load image from API URL");
 
                 // Try one more time with absolute URL
-                const absoluteApiUrl = `${window.location.origin}${apiUrl}`;
+                const absoluteApiUrl = `${this.apiEndpoint}${apiUrl}`;
                 console.log("Trying with absolute API URL:", absoluteApiUrl);
 
                 const finalImg = new Image();

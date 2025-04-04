@@ -14,8 +14,8 @@ const initializeModels = async () => {
     await sequelize.sync({ alter: true });
     console.log("All PostgreSQL models were synchronized successfully.");
 
-    // Connect to MongoDB if environment has MONGODB_URI defined
-    if (process.env.MONGODB_URI) {
+    // Connect to MongoDB if environment has MONGODB_URI defined and not disabled
+    if (process.env.MONGODB_URI && process.env.DISABLE_MONGODB !== "true") {
       try {
         await mongoose.connect(process.env.MONGODB_URI, {
           useNewUrlParser: true,
@@ -27,7 +27,7 @@ const initializeModels = async () => {
       }
     } else {
       console.log(
-        "MongoDB connection URI not found. Skipping MongoDB connection."
+        "MongoDB connection skipped. Either URI not found or MongoDB disabled in environment."
       );
     }
   } catch (error) {

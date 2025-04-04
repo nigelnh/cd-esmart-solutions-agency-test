@@ -225,7 +225,7 @@ export default {
                   },
                   {
                     // Tăng timeout cho API call
-                    timeout: 30000, // 30 seconds
+                    timeout: 60000, // Tăng lên 60 giây
                   }
                 );
 
@@ -284,10 +284,19 @@ export default {
 
             // Nếu sau tất cả các lần thử lại vẫn không tạo được nội dung
             if (!contentCreated) {
-              throw (
-                contentError ||
-                new Error("Không thể tạo nội dung sau nhiều lần thử")
-              );
+              // Kiểm tra nếu là lỗi timeout
+              if (contentError && contentError.code === "ECONNABORTED") {
+                const timeoutError = new Error(
+                  "Server cần quá nhiều thời gian để tạo nội dung. Vui lòng thử lại với từ khóa ngắn hơn hoặc thử lại sau."
+                );
+                timeoutError.isTimeout = true;
+                throw timeoutError;
+              } else {
+                throw (
+                  contentError ||
+                  new Error("Không thể tạo nội dung sau nhiều lần thử")
+                );
+              }
             }
           } catch (contentError) {
             console.error("Error generating content:", contentError);
@@ -303,11 +312,23 @@ export default {
             };
 
             this.$emit("update:data", updatedData);
-            alert(
-              "Không thể tạo nội dung: " +
-                contentError.message +
-                ". Đang sử dụng nội dung mẫu."
-            );
+
+            // Hiển thị thông báo lỗi phù hợp
+            let errorMessage = "Không thể tạo nội dung: ";
+            if (contentError.isTimeout) {
+              errorMessage += contentError.message;
+            } else if (
+              contentError.response &&
+              contentError.response.status === 500
+            ) {
+              errorMessage +=
+                "Lỗi máy chủ. Vui lòng thử lại với từ khóa ngắn hơn.";
+            } else {
+              errorMessage +=
+                contentError.message + ". Đang sử dụng nội dung mẫu.";
+            }
+
+            alert(errorMessage);
             this.$emit("next");
           }
         }

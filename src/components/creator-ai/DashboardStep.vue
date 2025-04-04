@@ -127,7 +127,11 @@ export default {
       try {
         this.loading = true;
 
-        const response = await axios.get("/api/projects");
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
+        const response = await axios.get(`${apiURL}/projects`);
 
         if (response.data.success) {
           this.projects = response.data.data;
@@ -244,8 +248,12 @@ export default {
           return;
         }
 
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
         // Log URL để debug
-        const url = `/api/projects/${projectId}`;
+        const url = `${apiURL}/projects/${projectId}`;
         console.log("Delete URL:", url);
 
         const response = await axios({

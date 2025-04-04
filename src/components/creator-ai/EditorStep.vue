@@ -330,8 +330,14 @@ export default {
         console.log("[SEO_CLIENT] Bắt đầu phân tích SEO với Gemini API");
         this.seoAnalysisStage = "Đang gọi Gemini API để phân tích SEO...";
 
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
         // Gọi API phân tích SEO
-        const response = await axios.post(`/api/seo/analyze/${this.contentId}`);
+        const response = await axios.post(
+          `${apiURL}/seo/analyze/${this.contentId}`
+        );
 
         if (response.data.success) {
           this.seoData = response.data.data.analysis;
@@ -374,9 +380,13 @@ export default {
           `[SEO_CLIENT] Điểm SEO trước khi tối ưu thủ công: ${previousScore}`
         );
 
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
         // Gọi API tối ưu hóa SEO
         const response = await axios.post(
-          `/api/seo/optimize/${this.contentId}`
+          `${apiURL}/seo/optimize/${this.contentId}`
         );
 
         if (response.data.success) {
@@ -435,7 +445,12 @@ export default {
 
     async fetchSEOData() {
       try {
-        const response = await axios.get(`/api/seo/report/${this.contentId}`);
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
+        const response = await axios.get(
+          `${apiURL}/seo/report/${this.contentId}`
+        );
 
         if (response.data.success) {
           return {
@@ -488,9 +503,13 @@ export default {
           `[SEO_CLIENT] Điểm SEO trước khi tự động tối ưu: ${previousScore}`
         );
 
+        // Sử dụng URL đầy đủ
+        const apiURL =
+          process.env.VUE_APP_API_URL ||
+          "https://esmart-api-lnni.onrender.com/api";
         // Gọi API tự động tối ưu hóa
         const response = await axios.post(
-          `/api/seo/auto-optimize/${this.contentId}`,
+          `${apiURL}/seo/auto-optimize/${this.contentId}`,
           {
             maxOptimizations: 3,
             targetScore: 80,

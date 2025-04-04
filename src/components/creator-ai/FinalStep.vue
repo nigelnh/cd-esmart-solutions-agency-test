@@ -356,17 +356,12 @@ export default {
         console.log(`Trying content-image endpoint: ${contentImageUrl}`);
 
         try {
-          // Kiểm tra xem ảnh có tồn tại trong database không
-          const testImg = new Image();
-          const imageLoadPromise = new Promise((resolve) => {
-            testImg.onload = () => resolve(true);
-            testImg.onerror = () => resolve(false);
+          // Kiểm tra xem ảnh có tồn tại trong database không bằng cách sử dụng fetch
+          const imageResponse = await fetch(contentImageUrl, {
+            method: "HEAD",
           });
 
-          testImg.src = contentImageUrl;
-          const imageExists = await imageLoadPromise;
-
-          if (imageExists) {
+          if (imageResponse.ok) {
             console.log(
               "Image exists in database, using content-image endpoint"
             );
@@ -374,12 +369,16 @@ export default {
             this.contentImage = this.imageUrl;
             this.imageLoading = false;
             return;
+          } else {
+            console.log(
+              `Image not found at content-image endpoint: ${imageResponse.status}`
+            );
           }
         } catch (e) {
           console.log("Error checking content-image endpoint:", e);
         }
 
-        console.log("Image not found in database, checking content record");
+        console.log("Image not found in database, checking content record 2");
 
         // Nếu không tìm thấy trong database, thì kiểm tra từ API
         const controller = new AbortController();
@@ -1204,76 +1203,91 @@ export default {
                 this.localImage = directUrl;
                 this.$emit("update:image", directUrl);
 
-                // Verify the image can be loaded
-                const img = new Image();
-                img.onload = () => {
-                  console.log(
-                    "Image loaded successfully using direct URL:",
-                    directUrl
-                  );
-                  this.imageError = null;
-                  this.imageLoading = false;
-                  this.showToast("Đã tải hình ảnh thành công", "success");
-                };
-
-                img.onerror = (err) => {
-                  console.error("Failed to load image with direct URL:", err);
-                  // Try one more time with a direct fetch to verify file exists
-                  fetch(directUrl, { method: "HEAD" })
-                    .then((response) => {
-                      if (response.ok) {
-                        console.log(
-                          "Image exists on server but failed to load. Trying again..."
-                        );
-                        // Force browser to reload the image by adding timestamp
-                        const timestamp = new Date().getTime();
-                        const urlWithCache = `${directUrl}?t=${timestamp}`;
-                        this.localImage = urlWithCache;
-                        this.$emit("update:image", urlWithCache);
-                        this.imageLoading = false;
-                        this.showToast("Đã tải hình ảnh thành công", "success");
-                      } else {
-                        throw new Error(`Server returned ${response.status}`);
-                      }
-                    })
-                    .catch((fetchErr) => {
-                      console.error("Image verification failed:", fetchErr);
-                      this.imageError = "Không thể tải hình ảnh từ server";
+                // Use fetch to verify the image exists instead of Image loading
+                fetch(directUrl, { method: "HEAD" })
+                  .then((response) => {
+                    if (response.ok) {
+                      console.log("Image exists on server at:", directUrl);
+                      this.imageError = null;
                       this.imageLoading = false;
-                      // Try debug as last resort
-                      this.debugImageUrl(content.imageUrl);
-                    });
-                };
+                      this.showToast("Đã tải hình ảnh thành công", "success");
+                    } else {
+                      throw new Error(`Server returned ${response.status}`);
+                    }
+                  })
+                  .catch((fetchErr) => {
+                    console.error("Image verification failed:", fetchErr);
+                    this.imageError = "Không thể tải hình ảnh từ server";
+                    this.imageLoading = false;
+                    this.debugImageUrl(content.imageUrl);
+                  });
 
-                img.src = directUrl;
                 return;
               }
 
-              // Try standard URL processing if no filename pattern
+              // Handle content-image endpoint URLs specifically
+              if (content.imageUrl.includes("/content-image/")) {
+                const contentImageUrl = this.ensureAbsoluteUrl(
+                  content.imageUrl
+                );
+                console.log("Using content-image URL:", contentImageUrl);
+
+                // Force update image URL
+                this.localImage = contentImageUrl;
+                this.$emit("update:image", contentImageUrl);
+
+                // Verify with fetch
+                fetch(contentImageUrl, { method: "HEAD" })
+                  .then((response) => {
+                    if (response.ok) {
+                      console.log(
+                        "Image exists on server at content-image endpoint"
+                      );
+                      this.imageError = null;
+                      this.imageLoading = false;
+                      this.showToast("Đã tải hình ảnh thành công", "success");
+                    } else {
+                      throw new Error(`Server returned ${response.status}`);
+                    }
+                  })
+                  .catch((fetchErr) => {
+                    console.error(
+                      "Content-image verification failed:",
+                      fetchErr
+                    );
+                    this.imageError =
+                      "Không thể tải hình ảnh từ endpoint content-image";
+                    this.imageLoading = false;
+                  });
+
+                return;
+              }
+
+              // Try standard URL processing if no special cases match
               const formattedUrl = this.ensureAbsoluteUrl(content.imageUrl);
               console.log("Formatted URL for image:", formattedUrl);
 
-              // Verify the image can be loaded
-              const standardImg = new Image();
-              standardImg.onload = () => {
-                console.log(
-                  "Image loaded successfully with formatted URL:",
-                  formattedUrl
-                );
-                this.localImage = formattedUrl;
-                this.$emit("update:image", formattedUrl);
-                this.imageError = null;
-                this.imageLoading = false;
-                this.showToast("Đã tải hình ảnh thành công", "success");
-              };
+              // Update URL immediately
+              this.localImage = formattedUrl;
+              this.$emit("update:image", formattedUrl);
 
-              standardImg.onerror = () => {
-                console.error("Failed to load image with formatted URL");
-                // Try fallback methods
-                this.tryAlternativeImageUrls(content.imageUrl);
-              };
-
-              standardImg.src = formattedUrl;
+              // Verify with fetch
+              fetch(formattedUrl, { method: "HEAD" })
+                .then((response) => {
+                  if (response.ok) {
+                    console.log("Image exists at formatted URL");
+                    this.imageError = null;
+                    this.imageLoading = false;
+                    this.showToast("Đã tải hình ảnh thành công", "success");
+                  } else {
+                    throw new Error(`Server returned ${response.status}`);
+                  }
+                })
+                .catch(() => {
+                  console.error("Failed to load image with formatted URL");
+                  // Try fallback methods
+                  this.tryAlternativeImageUrls(content.imageUrl);
+                });
             } else {
               console.log("No image URL found in database");
 
@@ -1336,108 +1350,77 @@ export default {
           // Update URL immediately
           this.localImage = directUrl;
           this.$emit("update:image", directUrl);
-          this.imageLoading = false;
 
-          // Still try loading to confirm
-          const img = new Image();
-          img.onload = () => {
-            console.log("Image loaded successfully from direct URL");
-            this.imageError = null;
-          };
-          img.onerror = () => {
-            console.error("Image failed to load from direct URL");
-            this.imageError = "Không thể tải hình ảnh từ server";
-            this.debugImageUrl(originalUrl);
-          };
-          img.src = directUrl;
+          // Verify with fetch
+          fetch(directUrl, { method: "HEAD" })
+            .then((response) => {
+              if (response.ok) {
+                console.log("Alternative image exists at direct URL");
+                this.imageError = null;
+                this.imageLoading = false;
+                this.showToast("Đã tải hình ảnh thành công", "success");
+              } else {
+                throw new Error(`Server returned ${response.status}`);
+              }
+            })
+            .catch((err) => {
+              console.error(
+                "Alternative image failed to load from direct URL:",
+                err
+              );
+              this.imageError = "Không thể tải hình ảnh từ server";
+              this.imageLoading = false;
+              this.tryGenerateImageForContent();
+            });
+
           return;
         }
 
-        // Try to load the original URL image first
-        const img = new Image();
-        img.onload = () => {
-          console.log("Image loaded successfully from original URL");
-          this.localImage = originalUrl;
-          this.$emit("update:image", originalUrl);
-          this.imageLoading = false;
-        };
-
-        img.onerror = async () => {
+        // If no image found and we have content ID, try the content-image endpoint directly
+        if (this.contentId) {
+          const contentImageUrl = `${this.apiEndpoint}/image/content-image/${this.contentId}`;
           console.log(
-            "Failed to load image from original URL, trying alternate paths"
+            "Trying content-image endpoint as last resort:",
+            contentImageUrl
           );
 
-          // Try with /api prefix for server uploads
-          if (originalUrl.includes("uploads/")) {
-            const uploadPathMatch = originalUrl.match(/(uploads\/.*$)/);
-            if (uploadPathMatch && uploadPathMatch[1]) {
-              const apiUrl = `/api/image/${uploadPathMatch[1]}`;
-              console.log("Trying with API URL:", apiUrl);
+          // Update URL immediately
+          this.localImage = contentImageUrl;
+          this.$emit("update:image", contentImageUrl);
 
-              // Check if this URL works
-              const altImg = new Image();
-              altImg.onload = () => {
-                console.log("Image loaded successfully from API URL");
-                this.localImage = apiUrl;
-                this.$emit("update:image", apiUrl);
+          // Verify with fetch
+          fetch(contentImageUrl, { method: "HEAD" })
+            .then((response) => {
+              if (response.ok) {
+                console.log("Image exists at content-image endpoint");
+                this.imageError = null;
                 this.imageLoading = false;
-              };
-
-              altImg.onerror = () => {
-                console.log("Failed to load image from API URL");
-
-                // Try one more time with absolute URL
-                const absoluteApiUrl = `${this.apiEndpoint}${apiUrl}`;
-                console.log("Trying with absolute API URL:", absoluteApiUrl);
-
-                const finalImg = new Image();
-                finalImg.onload = () => {
-                  console.log(
-                    "Image loaded successfully from absolute API URL"
-                  );
-                  this.localImage = absoluteApiUrl;
-                  this.$emit("update:image", absoluteApiUrl);
-                  this.imageLoading = false;
-                };
-
-                finalImg.onerror = () => {
-                  console.log("All API URL attempts failed");
-                  this.imageError = "Không thể tải hình ảnh từ server";
-                  this.localImage = null;
-                  this.imageLoading = false;
-
-                  // Final attempt - debug URL
-                  this.debugImageUrl(originalUrl);
-                };
-
-                finalImg.src = absoluteApiUrl;
-              };
-
-              altImg.src = apiUrl;
-            } else {
-              this.imageError = "Invalid image path format";
-              this.localImage = null;
+                this.showToast("Đã tải hình ảnh thành công", "success");
+              } else {
+                throw new Error(`Server returned ${response.status}`);
+              }
+            })
+            .catch((err) => {
+              console.error("Content-image endpoint failed:", err);
+              this.imageError =
+                "Không thể tải hình ảnh từ endpoint content-image";
               this.imageLoading = false;
+              this.tryGenerateImageForContent();
+            });
 
-              // Final attempt - debug URL
-              this.debugImageUrl(originalUrl);
-            }
-          } else {
-            this.imageError = "Image not found";
-            this.localImage = null;
-            this.imageLoading = false;
+          return;
+        }
 
-            // Final attempt - debug URL
-            this.debugImageUrl(originalUrl);
-          }
-        };
+        // If all else fails
+        this.imageError = "Không thể tải hình ảnh";
+        this.imageLoading = false;
+        this.showToast("Không thể tải hình ảnh", "error");
 
-        // Ensure the URL is properly formatted
-        img.src = this.ensureAbsoluteUrl(originalUrl);
-      } catch (imgError) {
-        console.error("Error checking image:", imgError);
-        this.localImage = originalUrl;
-        this.$emit("update:image", originalUrl);
+        // Try generating a new image as last resort
+        this.tryGenerateImageForContent();
+      } catch (error) {
+        console.error("Error in tryAlternativeImageUrls:", error);
+        this.imageError = "Lỗi khi tìm kiếm ảnh thay thế";
         this.imageLoading = false;
       }
     },

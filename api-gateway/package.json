@@ -1,0 +1,13 @@
+{
+  "name": "esmart-api-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway for Esmart AI",
+  "main": "gateway-config.js",
+  "scripts": {
+    "start": "http-proxy-middleware-cli --config gateway-config.js"
+  },
+  "dependencies": {
+    "http-proxy-middleware": "^2.0.6",
+    "http-proxy-middleware-cli": "^1.0.1"
+  }
+}

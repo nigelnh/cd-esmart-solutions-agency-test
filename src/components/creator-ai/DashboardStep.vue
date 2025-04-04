@@ -95,6 +95,7 @@
 
 <script>
 import axios from "axios";
+import axiosInstance from "../../api/axios";
 
 export default {
   name: "DashboardStep",
@@ -133,14 +134,38 @@ export default {
           "https://esmart-api-lnni.onrender.com/api";
         const response = await axios.get(`${apiURL}/projects`);
 
+        console.log("Projects API response:", response.data);
+
+        // Xử lý nhiều cấu trúc phản hồi có thể có
         if (response.data.success) {
+          // Cấu trúc { success: true, data: [...] }
           this.projects = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          // Cấu trúc trực tiếp là một mảng
+          this.projects = response.data;
+        } else if (response.data && typeof response.data === "object") {
+          // Cấu trúc khác có thể có
+          this.projects = Array.isArray(response.data.projects)
+            ? response.data.projects
+            : Array.isArray(response.data.data)
+            ? response.data.data
+            : [];
         } else {
-          console.error("Failed to load projects");
+          console.error(
+            "Failed to load projects: Unexpected response format",
+            response.data
+          );
           this.projects = [];
         }
       } catch (error) {
         console.error("Error fetching projects:", error);
+
+        // Log chi tiết lỗi để debug
+        if (error.response) {
+          console.error("Error response status:", error.response.status);
+          console.error("Error response data:", error.response.data);
+        }
+
         this.projects = [];
       } finally {
         this.loading = false;
@@ -266,7 +291,13 @@ export default {
 
         console.log("Delete response:", response);
 
-        if (response.data && response.data.success) {
+        // Xử lý nhiều cấu trúc phản hồi có thể có
+        const isSuccess =
+          (response.data && response.data.success) ||
+          (response.status >= 200 && response.status < 300) ||
+          (response.data && response.data.deleted);
+
+        if (isSuccess) {
           // Remove the project from the projects array
           this.projects = this.projects.filter(
             (project) => project.id !== projectId
